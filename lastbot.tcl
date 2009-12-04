@@ -58,13 +58,14 @@ proc np {nick host hand chan arg} {
 
 	set token [::http::geturl "$last(root)user.getRecentTracks&user=$target&limit=1&api_key=$last(key)"]
 	upvar #0 $token state
+	putlog $state(url)
 	putlog $state(body)
 
 	set doc [dom parse $state(body)]
 	set root [$doc documentElement]
 
-	if { [$root hasAttribute status] } {
-		putserv "[[[$root firstChild] firstChild] data]"
+	if { [string match "failed" [$root getAttribute status]]} {
+		putserv "privmsg $chan :[[$root selectNode /lfm/error/text()] data]"
 		return 1
 	}
 	set command "$target "
