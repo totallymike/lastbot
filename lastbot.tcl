@@ -14,15 +14,14 @@ set last(who) "-"
 set last(key) "cb6d5c415b4e5009fcb76e86ca06f7b1"
 set last(root) "http://ws.audioscrobbler.com/2.0/?method="
 
-bind pub $last(who) $last(char)np np 
-
 proc init_nicks {} {
 	global nickfile
 	global nicklist
 	if { [file exists $nickfile] } {
 		set handle [open $nickfile r]
 		putlog "Initialising [file tail $nickfile]."
-		while { [gets $handle line] } {
+		while { [gets $handle line]  >= 0} {
+			putlog $line
 			set temp [split $line ":"]
 			set nicklist([lindex $temp 0]) [lindex $temp 1]
 		}
@@ -32,7 +31,6 @@ proc init_nicks {} {
 	}
 
 }
-init_nicks
 
 proc get_nick { nick } {
 	global nicklist
@@ -44,6 +42,40 @@ proc get_nick { nick } {
 	}
 }
 
+proc reg_nick { nick last } {
+	global nickfile
+	set handle [open $nickfile a+]
+	set host [getchanhost $nick]
+	if { [string length $host] > 0 } { puts $handle "$host:$last\n" }
+	close $handle
+	init_nicks
+	return 1
+}
+
+proc register {nick host hand chan arg} {
+	global last
+	set args [split $arg]
+
+	if { [string match "help" [lindex $args 0]] || [llength $args] > 2 } {
+		puthelp	"privmsg $chan :Usage: $last(char)register <ircnick> lastnick. If ircnick is ommitted, lastnick will be registered to you."
+		return 0
+	}
+	if { [llength $args] == 1 } {
+		if { [reg_nick $nick [lindex $args 0]] } {
+			putserv "privmsg $chan :[lindex $args 0] regisered to $nick."
+		} else {
+			putserv "privmsg $chan :Error with registration."
+			return 1
+		}
+	} elseif { [llength $args] == 2 } {
+		if { [reg_nick [lindex $args 0] [lindex $args 1]] } {
+			putserv "privmsg $chan :[lindex $args 1] registered to [lindex $args 0]."
+		} else {
+			putserv "privmsg $chan :Error with registration."
+			return 1
+		}
+	}
+}
 
 proc np {nick host hand chan arg} {
 	global last
@@ -51,7 +83,7 @@ proc np {nick host hand chan arg} {
 	set args [split $arg]
 	if { [llength $args] > 1 || [string match "help" [lindex $args 0]] } {
 		puthelp "privmsg $chan :Use: $last(char)np \[nick\]"
-		return 1
+		return 0
 	} elseif { [llength $args] == 1} {
 		set target [get_nick [lindex $args 0]]
 	}
@@ -73,7 +105,7 @@ proc np {nick host hand chan arg} {
 	set node [[$root firstChild] firstChild]
 
 	if {[$node hasAttribute nowplaying]} {
-		append command "$is now playing "
+		append command "is now playing "
 	} else {
 		append command "last played "
 	}
@@ -172,3 +204,7 @@ proc urlencode {url} {
 	regsub -all -- {\`} $url {%60} url
 	return $url
 }
+
+init_nicks
+bind pub $last(who) $last(char)np np 
+bind pub $last(who) $last(char)register register
