@@ -34,9 +34,10 @@ proc init_nicks {} {
 }
 init_nicks
 
-proc get_nick { $host $nick } {
+proc get_nick { nick } {
 	global nicklist
-	if {[info exists $nicklist($host)]} {
+	set host [getchanhost $nick]
+	if {[info exists nicklist($host)]} {
 		return $nicklist($host)
 	} else {
 		return $nick
@@ -46,13 +47,13 @@ proc get_nick { $host $nick } {
 
 proc np {nick host hand chan arg} {
 	global last
+	set target [get_nick $nick]
 	set args [split $arg]
-	set target [get_nick $host $nick]
 	if { [llength $args] > 1 || [string match "help" [lindex $args 0]] } {
 		puthelp "privmsg $chan :Use: $last(char)np \[nick\]"
 		return 1
 	} elseif { [llength $args] == 1} {
-		set target [lindex $args 0]
+		set target [get_nick [lindex $args 0]]
 	}
 
 	set token [::http::geturl "$last(root)user.getRecentTracks&user=$target&limit=1&api_key=$last(key)"]
@@ -62,11 +63,15 @@ proc np {nick host hand chan arg} {
 	set doc [dom parse $state(body)]
 	set root [$doc documentElement]
 
+	if { [$root hasAttribute status] } {
+		putserv "[[[$root firstChild] firstChild] data]"
+		return 1
+	}
 	set command "$target "
 
 	set node [[$root firstChild] firstChild]
 
-	if {[$node hasAttribute nowplaing]} {
+	if {[$node hasAttribute nowplaying]} {
 		append command "$is now playing "
 	} else {
 		append command "last played "
