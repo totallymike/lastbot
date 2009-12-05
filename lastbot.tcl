@@ -103,12 +103,14 @@ proc compare { nick host hand chan arg } {
 		return 0
 	} elseif { [llength $args] == 1 } {
 		set target2 [get_nick [lindex $args 0]]
+		lset args 1 [lindex $args 0]
+		lset args 0 $target1
 	} elseif { [llength $args] == 2 } {
 		set target1 [get_nick [lindex $args 0]]
 		set target2 [get_nick [lindex $args 1]]
 	}
 
-	set token [::http::geturl "$last(root)tasteometer.compare&type1=user&type2=user&value1=$target1&value2=$target2&limit=5&api_key=$last(key)"
+	set token [::http::geturl "$last(root)tasteometer.compare&type1=user&type2=user&value1=$target1&value2=$target2&limit=5&api_key=$last(key)"]
 	upvar #0 $token state
 	putlog $state(url)
 
@@ -121,27 +123,28 @@ proc compare { nick host hand chan arg } {
 	}
 
 	set score [[$root selectNodes /lfm/comparison/result/score/text()] data]
-	set score [expr { ( $score * 100 )  % 100 }]
+	set score [ expr { int($score * 100) } ]
 
-	set matchcount [[[$root selectNodes /lfm/comparison/result/artists] getAttribute matches]]
-	set matches [$root selectNodes /lfm/compariosn/result/artists/artist/name/text()]
+	set matchcount [[$root selectNodes /lfm/comparison/result/artists] getAttribute matches]
+	set matches [$root selectNodes /lfm/comparison/result/artists/artist/name/text()]
 
-	set command "$target1::$target2 = $score."
+	set command "[lindex $args 0] :: [lindex $args 1] = $score."
 
-	if { $matchcount > 0 } {
+	if { [llength $matches] > 0 } {
 		append command "  $matchcount matches including "
-		for { set i 0 } { $i < $matchcount } { incr i } {
-			if { $i < $matchcount - 2 } {
-				append command "[[lindex $matches $i] data], "
-			} elseif { $i = $matchcount - 2 } {
-				append command "[[lindex $matches $i] data], and "
+		for { set i 0 } { $i < [llength $matches] } { incr i } {
+			if { $i < [llength $matches] - 2 } {
+				append command "[[lindex $matches $i] nodeValue], "
+			} elseif { $i == [llength $matches] - 2 } {
+				append command "[[lindex $matches $i] nodeValue], and "
 			} else {
-				append command "[[lindex $matches $i] data]."
+				append command "[[lindex $matches $i] nodeValue]."
 			}
 		}
 	} else {
 		append command "  No matches whatsoever."
 	}
+	putlog "After loop"
 
 	putserv "privmsg $chan :$command"
 
@@ -222,9 +225,9 @@ proc np {nick host hand chan arg} {
 		}
 		for { set i 0 } { $i < $max } { incr i } {
 			if { $i < $max - 1 } {
-				append command "[[lindex $tags $i] data], "
+				append command "[[lindex $tags $i] nodeValue], "
 			} else {
-				append command "[[lindex $tags $i] data]."
+				append command "[[lindex $tags $i] nodeValue]."
 			}
 		}
 	} else {
