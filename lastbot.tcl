@@ -128,7 +128,7 @@ proc compare { nick host hand chan arg } {
 	set matchcount [[$root selectNodes /lfm/comparison/result/artists] getAttribute matches]
 	set matches [$root selectNodes /lfm/comparison/result/artists/artist/name/text()]
 
-	set command "[lindex $args 0] :: [lindex $args 1] = $score."
+	set command "[lindex $args 0] :: [lindex $args 1] = $score%."
 
 	if { [llength $matches] > 0 } {
 		append command "  $matchcount matches including "
