@@ -33,6 +33,7 @@ proc init_nicks {} {
 }
 
 proc get_nick { nick } {
+	putlog "get_nick $nick"
 	global nicklist
 	set host [getchanhost $nick]
 	if {[info exists nicklist($host)]} {
@@ -77,10 +78,22 @@ proc register {nick host hand chan arg} {
 	}
 }
 
+proc msg_register { nick host hand arg } {
+	register $nick $host $hand $nick $arg
+}
+
+proc pub_register { nick host hand chan arg } {
+	register $nick $host $hand $chan $arg 
+}
+
 proc np {nick host hand chan arg} {
+	putlog "np $nick"
 	global last
-	set target [get_nick $nick]
 	set args [split $arg]
+	set target [get_nick $nick]
+
+	putlog "llength \$args [llength $args]: arg $arg"
+
 	if { [llength $args] > 1 || [string match "help" [lindex $args 0]] } {
 		puthelp "privmsg $chan :Use: $last(char)np \[nick\]"
 		return 0
@@ -163,6 +176,22 @@ proc np {nick host hand chan arg} {
 	
 	return 0
 }
+
+proc pub_np { nick host hand chan arg } {
+	np $nick $host $hand $chan $arg
+}
+
+proc msg_np { nick host hand arg } {
+	global last
+	putlog "msg_np $nick"
+	set args [split $arg]
+	if { [llength $args] == 0 || [string match "help" [lindex $args 0]] } {
+		putserv "privmsg $nick :pm syntax: $last(char)np #channel"
+	} elseif { [llength $args] == 1 } {
+		np $nick $host $hand [lindex $args 0] "" 
+	} 
+}
+
 proc urlencode {url} {
 	set url [string trim $url]
 	# % goes first ... obviously :)
@@ -206,5 +235,7 @@ proc urlencode {url} {
 }
 
 init_nicks
-bind pub $last(who) $last(char)np np 
-bind pub $last(who) $last(char)register register
+bind pub $last(who) $last(char)np pub_np 
+bind msg $last(who) $last(char)np msg_np
+bind pub $last(who) $last(char)register pub_register
+bind msg $last(who) $last(char)register msg_register
