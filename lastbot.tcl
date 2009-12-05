@@ -69,7 +69,7 @@ proc register {nick host hand chan arg} {
 	}
 	if { [llength $args] == 1 } {
 		if { [reg_nick $nick [lindex $args 0]] } {
-			putserv "privmsg $chan :[lindex $args 0] regisered to $nick."
+			putserv "privmsg $chan :[lindex $args 0] registered to $nick."
 		} else {
 			putserv "privmsg $chan :Error with registration."
 			return 1
