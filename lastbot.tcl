@@ -33,7 +33,6 @@ proc init_nicks {} {
 }
 
 proc get_nick { nick } {
-	putlog "get_nick $nick"
 	global nicklist
 	set host [getchanhost $nick]
 	if {[info exists nicklist($host)]} {
@@ -47,10 +46,17 @@ proc reg_nick { nick last } {
 	global nickfile
 	set handle [open $nickfile a+]
 	set host [getchanhost $nick]
-	if { [string length $host] > 0 } { puts $handle "$host:$last\n" }
+	if { [string length $host] > 0 } { puts $handle "$host:$last" }
 	close $handle
 	init_nicks
 	return 1
+}
+
+proc msg_list {nick host hand arg} {
+	global nicklist
+	foreach { host lastnick } [array get nicklist] {
+		putserv "privmsg $nick :$host => $lastnick"
+	}
 }
 
 proc register {nick host hand chan arg} {
@@ -78,6 +84,7 @@ proc register {nick host hand chan arg} {
 	}
 }
 
+
 proc msg_register { nick host hand arg } {
 	register $nick $host $hand $nick $arg
 }
@@ -86,13 +93,70 @@ proc pub_register { nick host hand chan arg } {
 	register $nick $host $hand $chan $arg 
 }
 
+proc compare { nick host hand chan arg } {
+	global last
+	set args [split $arg]
+	set target1 [get_nick $nick]
+
+	if { [llength $args] > 2 || [string match "help" [lindex $args 0]] } {
+		puthelp "privmsg $chan :Use $last(char)compare nick \[othernick\].  If second nick is omitted, compare to you."
+		return 0
+	} elseif { [llength $args] == 1 } {
+		set target2 [get_nick [lindex $args 0]]
+	} elseif { [llength $args] == 2 } {
+		set target1 [get_nick [lindex $args 0]]
+		set target2 [get_nick [lindex $args 1]]
+	}
+
+	set token [::http::geturl "$last(root)tasteometer.compare&type1=user&type2=user&value1=$target1&value2=$target2&limit=5&api_key=$last(key)"
+	upvar #0 $token state
+	putlog $state(url)
+
+	set doc [dom parse $state(body)]
+	set root [$doc documentElement]
+
+	if { [string match "failed" [$root getAttribute status]]} {
+		putserv "privmsg $chan :[[$root selectNode /lfm/error/text()] data]"
+		return 1
+	}
+
+	set score [[$root selectNodes /lfm/comparison/result/score/text()] data]
+	set score [expr { ( $score * 100 )  % 100 }]
+
+	set matchcount [[[$root selectNodes /lfm/comparison/result/artists] getAttribute matches]]
+	set matches [$root selectNodes /lfm/compariosn/result/artists/artist/name/text()]
+
+	set command "$target1::$target2 = $score."
+
+	if { $matchcount > 0 } {
+		append command "  $matchcount matches including "
+		for { set i 0 } { $i < $matchcount } { incr i } {
+			if { $i < $matchcount - 2 } {
+				append command "[[lindex $matches $i] data], "
+			} elseif { $i = $matchcount - 2 } {
+				append command "[[lindex $matches $i] data], and "
+			} else {
+				append command "[[lindex $matches $i] data]."
+			}
+		}
+	} else {
+		append command "  No matches whatsoever."
+	}
+
+	putserv "privmsg $chan :$command"
+
+	return 0
+}
+
+proc pub_compare { nick host hand chan arg } {
+	compare $nick $host $hand $chan $arg
+}
+
 proc np {nick host hand chan arg} {
-	putlog "np $nick"
 	global last
 	set args [split $arg]
 	set target [get_nick $nick]
 
-	putlog "llength \$args [llength $args]: arg $arg"
 
 	if { [llength $args] > 1 || [string match "help" [lindex $args 0]] } {
 		puthelp "privmsg $chan :Use: $last(char)np \[nick\]"
@@ -104,7 +168,6 @@ proc np {nick host hand chan arg} {
 	set token [::http::geturl "$last(root)user.getRecentTracks&user=$target&limit=1&api_key=$last(key)"]
 	upvar #0 $token state
 	putlog $state(url)
-	putlog $state(body)
 
 	set doc [dom parse $state(body)]
 	set root [$doc documentElement]
@@ -139,7 +202,6 @@ proc np {nick host hand chan arg} {
 	putlog $url
 	set token [::http::geturl $url]
 	upvar #0 $token state
-	putlog $state(body)
 
 	set doc [dom parse $state(body)]
 	set root [$doc documentElement]
@@ -171,7 +233,6 @@ proc np {nick host hand chan arg} {
 
 	putserv "privmsg $chan :$command"
 
-	putlog $name
 
 	
 	return 0
@@ -183,7 +244,6 @@ proc pub_np { nick host hand chan arg } {
 
 proc msg_np { nick host hand arg } {
 	global last
-	putlog "msg_np $nick"
 	set args [split $arg]
 	if { [llength $args] == 0 || [string match "help" [lindex $args 0]] } {
 		putserv "privmsg $nick :pm syntax: $last(char)np #channel"
@@ -239,3 +299,5 @@ bind pub $last(who) $last(char)np pub_np
 bind msg $last(who) $last(char)np msg_np
 bind pub $last(who) $last(char)register pub_register
 bind msg $last(who) $last(char)register msg_register
+bind msg $last(who) $last(char)list msg_list
+bind pub $last(who) $last(char)compare compare
