@@ -9,7 +9,7 @@ putlog "Welcome to lastbot!"
 
 global nicklist
 
-set last(char) "%"
+set last(char) "!"
 set last(who) "-"
 set last(key) "cb6d5c415b4e5009fcb76e86ca06f7b1"
 set last(root) "http://ws.audioscrobbler.com/2.0/?method="
@@ -103,8 +103,8 @@ proc compare { nick host hand chan arg } {
 		return 0
 	} elseif { [llength $args] == 1 } {
 		set target2 [get_nick [lindex $args 0]]
-		lset args 1 [lindex $args 0]
 		lset args 0 $target1
+		lset args 1 [lindex $args 0]
 	} elseif { [llength $args] == 2 } {
 		set target1 [get_nick [lindex $args 0]]
 		set target2 [get_nick [lindex $args 1]]
@@ -158,6 +158,7 @@ proc pub_compare { nick host hand chan arg } {
 proc np {nick host hand chan arg} {
 	global last
 	set args [split $arg]
+	set tnick $nick
 	set target [get_nick $nick]
 
 
@@ -165,6 +166,7 @@ proc np {nick host hand chan arg} {
 		puthelp "privmsg $chan :Use: $last(char)np \[nick\]"
 		return 0
 	} elseif { [llength $args] == 1} {
+		set tnick [lindex $args 0]
 		set target [get_nick [lindex $args 0]]
 	}
 
@@ -179,7 +181,7 @@ proc np {nick host hand chan arg} {
 		putserv "privmsg $chan :[[$root selectNode /lfm/error/text()] data]"
 		return 1
 	}
-	set command "$target "
+	set command "$tnick "
 
 	set node [[$root firstChild] firstChild]
 
@@ -191,8 +193,8 @@ proc np {nick host hand chan arg} {
 
 	set artist [[$node firstChild] firstChild]
 	set track [[[$node firstChild] nextSibling] firstChild]
-	set newartist [$artist data]
-	set newtrack [$track data]
+	set newartist [urlencode [ $artist data]]
+	set newtrack [urlencode [$track data]]
 
 	append command "[$track data], by [$artist data]."
 
@@ -201,7 +203,6 @@ proc np {nick host hand chan arg} {
 	putserv "privmsg $chan :$command"
 
 	set url "$last(root)track.getinfo&artist=$newartist&track=$newtrack&api_key=$last(key)"
-	regsub -all -- { } $url {%20} url
 	putlog $url
 	set token [::http::geturl $url]
 	upvar #0 $token state
