@@ -259,10 +259,11 @@ proc msg_url { nick host hand chan arg } {
 
 proc url { nick host hand chan arg } {
     global last
-    set args [split arg]
+    set args [split $arg]
 
-    if { [llength args] == 0 } {
+    if { [llength $args] == 0 } {
 	set target $nick
+	putlog $target
     } elseif { [string match "help" [lindex $args 0]] } {
 	putserv "privmsg $chan :syntax: !url <nick>.  If nick is ommitted, you are assumed to be the target."
     } elseif { [llength $args] == 1 } {
