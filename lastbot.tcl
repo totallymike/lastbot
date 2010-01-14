@@ -307,3 +307,4 @@ bind msg $last(who) $last(char)register msg_register
 bind msg $last(who) $last(char)list msg_list
 bind pub $last(who) $last(char)compare compare
 bind pub $last(who) $last(char)cp compare
+bind pub $last(who) $last(char)reg pub_register
