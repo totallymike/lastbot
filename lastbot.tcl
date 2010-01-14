@@ -247,10 +247,10 @@ proc pub_url { nick host hand chan arg } {
     url $nick $host $hand $chan $arg
 }
 
-proc msg_url { nick host hand chan arg } {
+proc msg_url { nick host hand arg } {
     global last
-    set args [split $args]
-    if { llength $args == 0 || [string match "help" [lindex $args 0]] } {
+    set args [split $arg]
+    if { [llength $args] == 0 || [string match "help" [lindex $args 0]] } {
 	putserv "privmsg $nick :pm syntax: $last(char)url #channel"
     } elseif { [llength $args] == 1 } {
 	url $nick $host $hand [lindex $args 0] ""
