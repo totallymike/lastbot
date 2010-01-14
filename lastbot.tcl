@@ -105,7 +105,7 @@ proc compare { nick host hand chan arg } {
 	set target2 [get_nick [lindex $args 0]]
 	putlog "$target2"
 	lappend args [lindex $args 0]
-	lset args 0 $target1
+	lset args 0 $nick
     } elseif { [llength $args] == 2 } {
 	set target1 [get_nick [lindex $args 0]]
 	set target2 [get_nick [lindex $args 1]]
@@ -306,4 +306,4 @@ bind pub $last(who) $last(char)register pub_register
 bind msg $last(who) $last(char)register msg_register
 bind msg $last(who) $last(char)list msg_list
 bind pub $last(who) $last(char)compare compare
-
+bind pub $last(who) $last(char)cp compare
