@@ -244,7 +244,7 @@ proc np {nick host hand chan arg} {
 }
 
 proc pub_url { nick host hand chan arg } {
-    url $nick $Phost $hand $chan $arg
+    url $nick $host $hand $chan $arg
 }
 
 proc msg_url { nick host hand chan arg } {
