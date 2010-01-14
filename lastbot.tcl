@@ -243,6 +243,39 @@ proc np {nick host hand chan arg} {
     return 0
 }
 
+proc pub_url { nick host hand chan arg } {
+    url $nick $Phost $hand $chan $arg
+}
+
+proc msg_url { nick host hand chan arg } {
+    global last
+    set args [split $args]
+    if { llength $args == 0 || [string match "help" [lindex $args 0]] } {
+	putserv "privmsg $nick :pm syntax: $last(char)url #channel"
+    } elseif { [llength $args] == 1 } {
+	url $nick $host $hand [lindex $args 0] ""
+    }
+}
+
+proc url { nick host hand chan arg } {
+    global last
+    set args [split arg]
+
+    if { [llength args] == 0 } {
+	set target $nick
+    } elseif { [string match "help" [lindex $args 0]] } {
+	putserv "privmsg $chan :syntax: !url <nick>.  If nick is ommitted, you are assumed to be the target."
+    } elseif { [llength $args] == 1 } {
+	set target [lindex $args 0]
+    }
+
+    set lastnick [get_nick $target]
+    
+    putserv "privmsg $chan :http://last.fm/user/$lastnick"
+}
+
+
+    
 proc pub_np { nick host hand chan arg } {
     np $nick $host $hand $chan $arg
 }
