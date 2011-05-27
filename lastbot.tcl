@@ -95,15 +95,17 @@ proc pub_register { nick host hand chan arg } {
 
 proc compare { nick host hand chan arg } {
     global last
+    set arg [string trimright $arg]
     set args [split $arg]
     set target1 [get_nick $nick]
 
     if { [llength $args] > 2 || [string match "help" [lindex $args 0]] } {
 	puthelp "privmsg $chan :Use $last(char)compare nick \[othernick\].  If second nick is omitted, compare to you."
 	return 0
-    } elseif { [llength $args] == 1 } {
+    } elseif { [llength $args] == 1 || [string match "" [lindex $args 1]]} {
+	putlog "'[lindex $args 0]'"
 	set target2 [get_nick [lindex $args 0]]
-	putlog "$target2"
+	putlog "'$target2'"
 	lappend args [lindex $args 0]
 	lset args 0 $nick
     } elseif { [llength $args] == 2 } {
@@ -158,6 +160,7 @@ proc pub_compare { nick host hand chan arg } {
 
 proc np {nick host hand chan arg} {
     global last
+    set arg [string trimright $arg]
     set args [split $arg]
     set tnick $nick
     set target [get_nick $nick]
@@ -214,10 +217,11 @@ proc np {nick host hand chan arg} {
     set name [[$root selectNodes /lfm/track/name/text()] data]
     set listeners [[$root selectNodes /lfm/track/listeners/text()] data]
     set playcount [[$root selectNodes /lfm/track/playcount/text()] data]
+    set ratio [ expr {round( double($playcount) / $listeners) } ]
     
     set tags [$root selectNodes /lfm/track/toptags/tag/name/text()]
 
-    set command "$name has been played $playcount times by $listeners listeners.  It has "
+    set command "$name has been played $playcount times by $listeners listeners ($ratio:1).  It has "
     if {[llength $tags]} {
 	append command "the following tags: "
 	if {[llength $tags] > 5} {
@@ -259,6 +263,7 @@ proc msg_url { nick host hand arg } {
 
 proc url { nick host hand chan arg } {
     global last
+    set arg [string trimright $arg]
     set args [split $arg]
 
     if { [llength $args] == 0 } {
@@ -268,6 +273,8 @@ proc url { nick host hand chan arg } {
 	putserv "privmsg $chan :syntax: !url <nick>.  If nick is ommitted, you are assumed to be the target."
     } elseif { [llength $args] == 1 } {
 	set target [lindex $args 0]
+    } else {
+	putlog $arg
     }
 
     set lastnick [get_nick $target]
